@@ -11,6 +11,7 @@ interface AuthState {
   getUsers: () => Promise<void>;
   setOnlineUsers: (userIds: string[]) => void;
   updateProfile: (data: { username: string }) => Promise<boolean>;
+  updateUserLastSeen: (userId: string, lastSeen: string) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -55,5 +56,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       alert(error.response?.data?.error || "Error updating profile");
       return false;
     }
+  },
+
+  updateUserLastSeen: (userId, lastSeen) => {
+    set((state) => ({
+      users: state.users.map((u) => 
+        u.id === userId ? { ...u, lastSeen } : u
+      )
+    }));
   }
 }));

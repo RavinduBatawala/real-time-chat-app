@@ -17,10 +17,13 @@ export default function Home() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [newUsername, setNewUsername] = useState("");
 
+  // --- NEW: Image Upload State ---
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1. Initialize the app and connect the socket
   useEffect(() => {
     getUsers();
     getUnreadCounts();
@@ -28,7 +31,6 @@ export default function Home() {
     return () => disconnectSocket();
   }, [getUsers, getUnreadCounts, connectSocket, disconnectSocket]);
 
-  // 2. ALWAYS listen for incoming messages/typing events if the socket is connected
   useEffect(() => {
     if (socket) {
       subscribeToMessages();
@@ -36,7 +38,6 @@ export default function Home() {
     return () => unsubscribeFromMessages();
   }, [socket, subscribeToMessages, unsubscribeFromMessages]);
 
-  // 3. Only fetch chat history and mark as read when a specific user is clicked
   useEffect(() => {
     if (selectedUser) {
       getMessages(selectedUser.id);
@@ -58,12 +59,35 @@ export default function Home() {
     }, 2000);
   };
 
+  // --- NEW: Handle Image Selection ---
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() && !imagePreview) return;
     
-    await sendMessage(text.trim());
+    // Pass both text and the base64 image to the store
+    await sendMessage({
+      text: text.trim(),
+      image: imagePreview
+    });
+    
     setText(""); 
+    removeImage();
     
     stopTyping();
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -197,7 +221,11 @@ export default function Home() {
                   className={`${styles.messageWrapper} ${isSentByMe ? styles.messageSent : styles.messageReceived}`}
                 >
                   <div className={styles.messageBubble}>
-                    {message.text}
+                    {/* --- NEW: Render Image if it exists --- */}
+                    {message.fileUrl && (
+                      <img src={message.fileUrl} alt="Attachment" className={styles.messageImage} />
+                    )}
+                    {message.text && <span>{message.text}</span>}
                   </div>
                   <div className={styles.messageTime}>
                     {message.createdAt 
@@ -210,7 +238,32 @@ export default function Home() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* --- NEW: Image Preview Bar --- */}
+          {imagePreview && (
+            <div className={styles.imagePreviewContainer}>
+              <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
+              <button type="button" onClick={removeImage} className={styles.removeImageBtn}>✕</button>
+            </div>
+          )}
+
           <form onSubmit={handleSendMessage} className={styles.messageInputArea}>
+            {/* --- NEW: Hidden file input and attach button --- */}
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              ref={fileInputRef}
+              onChange={handleImageChange}
+            />
+            <button 
+              type="button" 
+              className={styles.attachBtn} 
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach Image"
+            >
+              📎
+            </button>
+            
             <input 
               type="text" 
               placeholder="Type your message..." 
@@ -218,7 +271,7 @@ export default function Home() {
               value={text}
               onChange={handleTyping}
             />
-            <button type="submit" className={styles.sendBtn} disabled={!text.trim()}>
+            <button type="submit" className={styles.sendBtn} disabled={!text.trim() && !imagePreview}>
               Send
             </button>
           </form>

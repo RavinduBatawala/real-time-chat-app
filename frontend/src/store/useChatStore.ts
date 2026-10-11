@@ -15,7 +15,7 @@ interface ChatState {
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
   getMessages: (userId: string) => Promise<void>;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (messageData: { text?: string; image?: string | null }) => Promise<void>;
   setSelectedUser: (user: any | null) => void;
   startTyping: () => void;
   stopTyping: () => void;
@@ -47,6 +47,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     socket.on("getOnlineUsers", (userIds) => {
       useAuthStore.getState().setOnlineUsers(userIds);
     });
+
+    // --- NEW: Listen for offline timestamps ---
+    socket.on("userOffline", ({ userId, lastSeen }) => {
+      useAuthStore.getState().updateUserLastSeen(userId, lastSeen);
+    });
   },
 
   disconnectSocket: () => {
@@ -64,11 +69,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser?.id;
       
       if (isMessageSentFromSelectedUser) {
-        // If we are actively chatting with them, just add the message and immediately mark it as read in the DB
         set({ messages: [...get().messages, newMessage] });
         axiosInstance.put(`/messages/mark-read/${newMessage.senderId}`);
       } else {
-        // If it's from someone else, increment their specific unread badge counter
         const currentCount = unreadCounts[newMessage.senderId] || 0;
         set({ unreadCounts: { ...unreadCounts, [newMessage.senderId]: currentCount + 1 } });
       }
@@ -116,7 +119,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
   markAsRead: async (userId) => {
     try {
       await axiosInstance.put(`/messages/mark-read/${userId}`);
-      // Remove the badge instantly on the UI
       const updatedCounts = { ...get().unreadCounts };
       delete updatedCounts[userId];
       set({ unreadCounts: updatedCounts });
@@ -137,12 +139,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  sendMessage: async (text) => {
+  sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     if (!selectedUser) return;
 
     try {
-      const res = await axiosInstance.post(`/messages/send/${selectedUser.id}`, { text });
+      const res = await axiosInstance.post(`/messages/send/${selectedUser.id}`, messageData);
       set({ messages: [...messages, res.data] });
     } catch (error) {
       console.error("Error sending message:", error);

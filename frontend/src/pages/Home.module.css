@@ -398,3 +398,62 @@
 .saveBtn:hover {
   background-color: #1d4ed8;
 }
+/* Image Upload Styles */
+.attachBtn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 8px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.attachBtn:hover {
+  color: #2563eb;
+}
+
+.imagePreviewContainer {
+  display: flex;
+  align-items: center;
+  padding: 12px 32px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  gap: 16px;
+}
+
+.imagePreview {
+  height: 60px;
+  width: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+}
+
+.removeImageBtn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.removeImageBtn:hover {
+  background-color: #dc2626;
+}
+
+.messageImage {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: block;
+}

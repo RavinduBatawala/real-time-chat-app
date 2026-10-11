@@ -13,18 +13,25 @@ model User {
   email     String   @unique
   password  String
   avatarUrl String?  
+  lastSeen  DateTime @default(now())
   createdAt DateTime @default(now())
   
-  messages  Message[]
+  // A user can both send and receive messages
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 }
 
 model Message {
-  id             String   @id @default(uuid())
-  content        String?  
-  fileUrl        String?  
-  senderId       String
-  sender         User     @relation(fields: [senderId], references: [id])
-  conversationId String   
-  isRead         Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  id         String   @id @default(uuid())
+  text       String?  
+  fileUrl    String?  
+  
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }
