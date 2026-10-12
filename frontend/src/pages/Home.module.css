@@ -403,15 +403,17 @@
   background: none;
   border: none;
   color: #64748b;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 0 8px;
-  transition: color 0.2s;
   display: flex;
   align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
 .attachBtn:hover {
+  background-color: #f1f5f9;
   color: #2563eb;
 }
 

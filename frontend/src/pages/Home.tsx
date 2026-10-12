@@ -17,7 +17,6 @@ export default function Home() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [newUsername, setNewUsername] = useState("");
 
-  // --- NEW: Image Upload State ---
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,7 +58,6 @@ export default function Home() {
     }, 2000);
   };
 
-  // --- NEW: Handle Image Selection ---
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -80,7 +78,6 @@ export default function Home() {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
     
-    // Pass both text and the base64 image to the store
     await sendMessage({
       text: text.trim(),
       image: imagePreview
@@ -105,11 +102,28 @@ export default function Home() {
     }
   };
 
+  // Helper to format the Last Seen timestamp
+  const formatLastSeen = (dateString?: string) => {
+    if (!dateString) return "Offline";
+    const date = new Date(dateString);
+    const isToday = date.toDateString() === new Date().toDateString();
+    
+    if (isToday) {
+      return `Last seen today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    return `Last seen ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
   const safeUsers = Array.isArray(users) ? users : [];
   const safeMessages = Array.isArray(messages) ? messages : [];
   const filteredUsers = safeUsers.filter(user => 
     user.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Sync the selected user with the live users array so the timestamp updates instantly
+  const activeUser = selectedUser 
+    ? (safeUsers.find(u => u.id === selectedUser.id) || selectedUser) 
+    : null;
 
   return (
     <div className={styles.container}>
@@ -177,6 +191,7 @@ export default function Home() {
                   </div>
                   <div className={styles.userInfo}>
                     <span className={styles.userName}>{user.username || 'Unknown User'}</span>
+                    {/* Kept the sidebar clean with just Online/Offline */}
                     <span className={`${styles.userStatus} ${isOnline && !isTyping ? styles.onlineText : ''} ${isTyping ? styles.typingText : ''}`}>
                       {isTyping ? 'Typing...' : (isOnline ? 'Online' : 'Offline')}
                     </span>
@@ -196,20 +211,37 @@ export default function Home() {
         </div>
       </div>
 
-      {!selectedUser ? (
+      {!activeUser ? (
         <div className={styles.noChatSelected}>
           <h2 className={styles.noChatTitle}>Welcome, {authUser?.username || 'User'}!</h2>
           <p>Select a user from the sidebar to start messaging.</p>
         </div>
       ) : (
         <div className={styles.chatArea}>
+          
+          {/* --- NEW: Stacked Chat Header --- */}
           <div className={styles.chatHeader}>
-            {selectedUser.username || 'Unknown User'}
-            {typingUsers.includes(selectedUser.id) && (
-              <span style={{ fontSize: '13px', color: '#64748b', marginLeft: '12px', fontWeight: 'normal' }}>
-                is typing...
-              </span>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: '18px', fontWeight: '600', color: '#0f172a' }}>
+                  {activeUser.username || 'Unknown User'}
+                </span>
+                {typingUsers.includes(activeUser.id) && (
+                  <span style={{ fontSize: '13px', color: '#2563eb', fontStyle: 'italic', marginLeft: '12px', fontWeight: '500' }}>
+                    is typing...
+                  </span>
+                )}
+              </div>
+              
+              {/* Only show Online/Last Seen if they are NOT typing */}
+              {!typingUsers.includes(activeUser.id) && (
+                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '400', marginTop: '4px' }}>
+                  {onlineUsers.includes(activeUser.id) 
+                    ? <span style={{ color: '#10b981', fontWeight: '500' }}>Online</span> 
+                    : formatLastSeen(activeUser.lastSeen)}
+                </span>
+              )}
+            </div>
           </div>
           
           <div className={styles.messageList}>
@@ -221,7 +253,6 @@ export default function Home() {
                   className={`${styles.messageWrapper} ${isSentByMe ? styles.messageSent : styles.messageReceived}`}
                 >
                   <div className={styles.messageBubble}>
-                    {/* --- NEW: Render Image if it exists --- */}
                     {message.fileUrl && (
                       <img src={message.fileUrl} alt="Attachment" className={styles.messageImage} />
                     )}
@@ -238,7 +269,6 @@ export default function Home() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* --- NEW: Image Preview Bar --- */}
           {imagePreview && (
             <div className={styles.imagePreviewContainer}>
               <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
@@ -247,11 +277,10 @@ export default function Home() {
           )}
 
           <form onSubmit={handleSendMessage} className={styles.messageInputArea}>
-            {/* --- NEW: Hidden file input and attach button --- */}
             <input
               type="file"
               accept="image/*"
-              hidden
+              style={{ display: 'none' }}
               ref={fileInputRef}
               onChange={handleImageChange}
             />
@@ -261,7 +290,20 @@ export default function Home() {
               onClick={() => fileInputRef.current?.click()}
               title="Attach Image"
             >
-              📎
+              <svg 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
             </button>
             
             <input 
