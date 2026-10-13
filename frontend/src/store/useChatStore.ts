@@ -15,7 +15,7 @@ interface ChatState {
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
   getMessages: (userId: string) => Promise<void>;
-  sendMessage: (messageData: { text?: string; image?: string | null }) => Promise<void>;
+  sendMessage: (messageData: { text?: string; fileData?: string | null; fileType?: string | null }) => Promise<void>;
   setSelectedUser: (user: any | null) => void;
   startTyping: () => void;
   stopTyping: () => void;
